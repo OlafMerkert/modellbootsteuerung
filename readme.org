@@ -1,0 +1,29 @@
+* Modellbootfernsteuerung
+mit dem Computer
+
+** TODO Kontrolliere ein Modellboot
+mit zwei Kanälen, Ruder und Gas
+
+** TODO Programmiere den ESC
+für den Motor, durch speziell getimte Ausschläge des Gaskanals
+
+* Datenprotokoll
+Die Steuerungsdaten werden über eine Funkverbindung an dem
+Microcontroller im Boot übertragen.  Am Computer werden die Daten in
+eine serielle Schnittstelle geschrieben.
+
+** Frame
+Jeder Frame besteht aus beliebig vielen nicht Nullbytes, und wird
+durch ein (oder mehrere) Nullbytes terminiert.
+
+** Daten
+Die Ansteuerungswerte für die Servos werden als 10Bit Daten, verteilt
+auf je zwei Bytes pro Servo in einem Frame übertragen.  Ein Frame hat
+also immer eine gerade Anzahl von Bytes.
+
+* Software auf dem PC
+** TODO Auslesen eines (oder mehrerer) Joysticks
+** TODO enkodieren der Steuerungsdaten in die serielle Schnittstelle
+** TODO Visualisierung der aktuellen Steuerungsdaten
+** TODO Oberfläche zur Konfiguration der Joystickachsen
+Endpunkte, Totbereich, Achsenauswahl, Invertieren, Kurven
