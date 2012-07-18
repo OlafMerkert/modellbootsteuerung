@@ -7,7 +7,7 @@
 
 (in-package :joystick-eingabe)
 
-(defparameter servo-max (- (expt 2 datenprotokoll:servo-resolution) 1))
+(defparameter servo-max (- (expt 2 13) 1))
 
 (defclass steuerungsdaten ()
   ((gas   :initarg :gas
