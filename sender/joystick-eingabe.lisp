@@ -6,6 +6,55 @@
 
 (in-package :joystick-eingabe)
 
+(defclass steuerungsdaten ()
+  ((gas   :initarg :gas
+          :initform 0
+          :accessor gas)
+   (ruder :initarg :ruder
+          :initform 0
+          :accessor ruder))
+  (:documentation "halte die Steuerungsdaten für das Boot vor."))
+
+(defclass steuerungsdaten-with-curves (steuerungsdaten)
+  ((gas-curve :initarg :gas-curve
+              :initform #1=(make-instance 'affine-curve
+                                          :in-min  -32768
+                                          :in-max 32767
+                                          :out-min 0
+                                          :out-max #. (expt 2 14))
+              :accessor gas-curve)
+   (ruder-curve :initarg :ruder-curve
+                :initform #1#
+                :accessor ruder-curve))
+  (:documentation "filter daten through curves, before one sends
+  them."))
+
+(defclass affine-curve ()
+  ((in-min  :initarg :in-min
+            :initform 0
+            :reader in-min)
+   (in-max  :initarg :in-max
+            :initform 1
+            :reader in-max)
+   (out-min :initarg :out-min
+            :initform 0
+            :reader out-min)
+   (out-max :initarg :out-max
+            :initform 1
+            :reader out-max))
+  (:documentation "affine transformation of input data to output data."))
+
+(defmethod apply-curve ((curve affine-curve) number)
+  (with-slots (in-min in-max out-min out-max) curve
+    (+ (* (/ (- number in-min)
+             (- in-max in-min))
+          (- out-max out-min))
+       out-min)))
+
+
+
+(defgeneric send (daten))
+
 
 (defun joystick-main-loop (js-spec data)
   "listen for joystick events, put the axis data into DATA according
