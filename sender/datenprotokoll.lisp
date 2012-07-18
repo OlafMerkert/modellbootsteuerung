@@ -104,7 +104,7 @@ parts."
 
 (defun make-boot-steuerung (gas ruder)
   (make-instance 'boot-steuerung :term nil
-                 :gas gas
+                 :gas   gas
                  :ruder ruder))
 
 (defun test/boot-steuerung ()

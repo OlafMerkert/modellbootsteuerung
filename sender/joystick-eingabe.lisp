@@ -89,10 +89,11 @@
             (get-ruder output-to-serial))
     (datenprotokoll:write-object
      (datenprotokoll:make-boot-steuerung
-      (get-gas output-to-serial)
+      (get-gas   output-to-serial)
       (get-ruder output-to-serial))
      (io-stream output-to-serial))
-    (sleep #.(/ 100 1000))))
+    (finish-output (io-stream output-to-serial) )
+    (sleep #.(/ 10 1000))))
 
 (defclass steuerung-output (steuerungsdaten-with-curves output-to-serial)
   ()
