@@ -165,7 +165,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
     :gas   2
     :ruder 0))
 
-(defparameter serial-io-path  "/tmp/bootsteuerung.test")
+(defparameter serial-io-path  "/dev/ttyUSB0")
 
 (defun steuerung-main (spec)
   (let ((so (make-steuerung-output serial-io-path)))
