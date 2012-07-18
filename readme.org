@@ -23,9 +23,11 @@ Die Ansteuerungswerte für die Servos werden als 10Bit Daten, verteilt
 auf je zwei Bytes pro Servo in einem Frame übertragen.  Ein Frame hat
 also immer eine gerade Anzahl von Bytes.
 
+Eine genauere Beschreibung findet sich in ~datenprotokoll.lisp~
+
 * Software auf dem PC
 ** TODO Auslesen eines (oder mehrerer) Joysticks
-** TODO enkodieren der Steuerungsdaten in die serielle Schnittstelle
+** DONE enkodieren der Steuerungsdaten in die serielle Schnittstelle
 ** TODO Visualisierung der aktuellen Steuerungsdaten
 ** TODO Oberfläche zur Konfiguration der Joystickachsen
-Endpunkte, Totbereich, Achsenauswahl, Invertieren, Kurven
+   Endpunkte, Totbereich, Achsenauswahl, Invertieren, Kurven
