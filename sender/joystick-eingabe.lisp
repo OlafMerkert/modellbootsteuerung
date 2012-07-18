@@ -122,6 +122,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                  :title-caption "Hello Katja"
                  :icon-caption  "Hello Katja")
      (setf (sdl:frame-rate) 30)
+     (sdl:initialise-default-font sdl:*font-8x8*)
      (sdl-cffi::sdl-joystick-event-state sdl-cffi::sdl-enable)
      (let ((js   (sdl-cffi::sdl-joystick-open id)))
        (sdl:with-events ()
@@ -131,17 +132,25 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                       t)
          (:joy-axis-motion-event
           (:which joystick :axis axis :value value)
-          (cond ((eql axis gas)
-                 (setf (gas data) value))
-                ((eql axis ruder)
-                 (setf (ruder data) value))))
+          (cond ((and (eql joystick id)
+                      (eql axis gas))
+                 (setf (gas data) value)
+                 (send data))
+                ((and (eql joystick id)
+                      (eql axis ruder))
+                 (setf (ruder data) value)
+                 (send data))))
          (:idle ()
                 (sdl:clear-display sdl:*black*)
                 (sdl:draw-string-solid-* (format nil "Hello Katja")
                                          200 50
                                          :color sdl:*white*
-                                         :justify :center)
-                (sdl:update-display))
+                                         :justify :center
+                                         :surface sdl:*default-display*)
+                (sdl:update-display)
+                ;;  always send data??
+                (send data)
+                )
          (:video-expose-event ()
                               (sdl:update-display)))))))
 
