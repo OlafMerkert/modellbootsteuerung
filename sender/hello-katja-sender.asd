@@ -1,7 +1,7 @@
-(defsystem :hello-katja-sender
+(defsystem hello-katja-sender
   :depends-on (ol-utils
                com.gigamonkeys.binary-data
                lispbuilder-sdl)
-    :serial t
-    :components ((:file "datenprotokoll")
-                 (:file "joystick-eingabe")))
+  :serial t
+  :components ((:file "datenprotokoll")
+               (:file "joystick-eingabe")))
