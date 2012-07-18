@@ -16,12 +16,12 @@
    :ruder
    :read-object
    :write-object
-   :servo-resolution))
+   :servo-resolution
+   :setup-serial-port))
 
 (in-package :datenprotokoll)
 
 (defconstant servo-resolution 14)
-
 
 (defconstant baudrate 115200)
 
@@ -41,11 +41,10 @@
          "-echo"
          "-F" path)))
 
-
 (defun open-serial (path)
   "Return a read/write stream to the serial interface at PATH."
   ;; configure serial interface
-  (setup-serial-port path)
+  ;;  (setup-serial-port path)
   (open path :direction :io
         :element-type '(unsigned-byte 8)
         :if-exists :append
