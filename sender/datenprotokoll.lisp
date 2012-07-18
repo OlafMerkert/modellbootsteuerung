@@ -13,9 +13,14 @@
    :boot-steuerung
    :make-boot-steuerung
    :gas
-   :ruder))
+   :ruder
+   :read-object
+   :write-object
+   :servo-resolution))
 
 (in-package :datenprotokoll)
+
+(defconstant servo-resolution 14)
 
 (defun open-serial (path)
   "Return a read/write stream to the serial interface at PATH."
@@ -72,8 +77,8 @@ parts."
            (write-byte 0 out)))
 
 (define-binary-class boot-steuerung ()
-  ((gas    (axis-value :bitlength 12))
-   (ruder  (axis-value :bitlength 12))
+  ((gas    (axis-value :bitlength servo-resolution))
+   (ruder  (axis-value :bitlength servo-resolution))
    (term   nullbyte)))
 
 (defun make-boot-steuerung (gas ruder)
