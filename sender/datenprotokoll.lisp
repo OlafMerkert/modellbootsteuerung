@@ -22,8 +22,30 @@
 
 (defconstant servo-resolution 14)
 
+
+(defconstant baudrate 115200)
+
+(defun setup-serial-port (path)
+  "Configure the serial port to above settings."
+  (sb-ext:run-program
+   "setserial"
+   (list path
+         "auto_irq"
+         "skip_test"
+         "autoconfig"))
+  (sb-ext:run-program
+   "stty"
+   (list baudrate
+         "cs8"
+         "-parenb" "-crtscts"
+         "-echo"
+         "-F" path)))
+
+
 (defun open-serial (path)
   "Return a read/write stream to the serial interface at PATH."
+  ;; configure serial interface
+  (setup-serial-port path)
   (open path :direction :io
         :element-type '(unsigned-byte 8)
         :if-exists :append

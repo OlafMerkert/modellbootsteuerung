@@ -31,3 +31,8 @@ Eine genauere Beschreibung findet sich in ~datenprotokoll.lisp~
 ** TODO Visualisierung der aktuellen Steuerungsdaten
 ** TODO Oberfläche zur Konfiguration der Joystickachsen
    Endpunkte, Totbereich, Achsenauswahl, Invertieren, Kurven
+
+* Erforderliche Software
+
+setserial + stty
+sdl libraries
