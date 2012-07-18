@@ -77,19 +77,22 @@
 
 (defclass output-to-serial ()
   ((io-stream :initarg :io-stream
-              :reader   io-stream))
+              :reader   io-stream)
+   (busy :initform (sb-thread:make-mutex :name "serial output")
+         :accessor busy))
   (:documentation "push gas and ruder daten to a serial interface"))
 
 (defmethod send ((output-to-serial output-to-serial))
-  (format t "Gas:  ~A  Ruder:  ~A~%"
-          (get-gas output-to-serial)
-          (get-ruder output-to-serial))
-  (datenprotokoll:write-object
-   (datenprotokoll:make-boot-steuerung
-    (get-gas output-to-serial)
-    (get-ruder output-to-serial))
-   (io-stream output-to-serial))
-  (sleep #.(/ 5 1000)))
+  (sb-thread:with-mutex ((busy output-to-serial))
+    (format t "Gas:  ~A  Ruder:  ~A~%"
+            (get-gas output-to-serial)
+            (get-ruder output-to-serial))
+    (datenprotokoll:write-object
+     (datenprotokoll:make-boot-steuerung
+      (get-gas output-to-serial)
+      (get-ruder output-to-serial))
+     (io-stream output-to-serial))
+    (sleep #.(/ 10 1000))))
 
 (defclass steuerung-output (steuerungsdaten-with-curves output-to-serial)
   ()
