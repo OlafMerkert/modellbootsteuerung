@@ -7,6 +7,8 @@ mit zwei Kanälen, Ruder und Gas
 ** TODO Programmiere den ESC
 für den Motor, durch speziell getimte Ausschläge des Gaskanals
 
+** TODO Vibration/Force Feedback
+
 * Datenprotokoll
 Die Steuerungsdaten werden über eine Funkverbindung an dem
 Microcontroller im Boot übertragen.  Am Computer werden die Daten in
