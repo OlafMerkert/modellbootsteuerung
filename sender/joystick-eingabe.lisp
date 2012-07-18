@@ -75,6 +75,43 @@
 
 (defgeneric send (daten))
 
+(defclass output-to-serial ()
+  ((io-stream :initarg :io-stream
+              :reader   io-stream))
+  (:documentation "push gas and ruder daten to a serial interface"))
+
+(defmethod send ((output-to-serial output-to-serial))
+  (format t "Gas:  ~A  Ruder:  ~A~%"
+          (get-gas output-to-serial)
+          (get-ruder output-to-serial))
+  (datenprotokoll:write-object
+   (datenprotokoll:make-boot-steuerung
+    (get-gas output-to-serial)
+    (get-ruder output-to-serial))
+   (io-stream output-to-serial))
+  (sleep #.(/ 5 1000)))
+
+(defclass steuerung-output (steuerungsdaten-with-curves output-to-serial)
+  ()
+  (:documentation "doc"))
+
+(defun make-steuerung-output (serial-path &key
+                                            (ruder-min 0)
+                                            (ruder-max servo-max)
+                                            (gas-min 0)
+                                            (gas-max servo-max))
+  (make-instance 'steuerung-output
+                 :ruder-curve (make-instance 'affine-curve
+                                             :in-min -32768
+                                             :in-max 32767
+                                             :out-min ruder-min
+                                             :out-max ruder-max)
+                 :gas-curve (make-instance 'affine-curve
+                                           :in-min -32768
+                                           :in-max 32767
+                                           :out-min gas-min
+                                           :out-max gas-max)
+                 :io-stream (datenprotokoll:open-serial serial-path)))
 
 (defun joystick-main-loop (js-spec data)
   "listen for joystick events, put the axis data into DATA according
@@ -119,14 +156,11 @@ to JS-SPEC and call the SEND method on DATA from time to time."
     :gas   2
     :ruder 0))
 
-(defun read-joystick-continually (js-spec)
-  (sdl:with-init (sdl:sdl-init-joystick)
-    (destructuring-bind (&key id gas ruder) js-spec
-      (let ((js (lispbuilder-sdl-cffi::sdl-joystick-open id)))
-        (unwind-protect
-             (loop do
-                  (format t "Gas:  ~A   Ruder:  ~A~%"
-                          (lispbuilder-sdl-cffi::sdl-joystick-get-axis js gas)
-                          (lispbuilder-sdl-cffi::sdl-joystick-get-axis js ruder))
-                  (sleep 1))
-          (lispbuilder-sdl-cffi::sdl-joystick-close js))))))
+(defparameter serial-io-path  "/tmp/bootsteuerung.test")
+
+(defun steuerung-main (spec)
+  (let ((so (make-steuerung-output serial-io-path)))
+    (unwind-protect
+         (joystick-main-loop spec so)
+      (datenprotokoll:close-serial (io-stream so)))))
+
