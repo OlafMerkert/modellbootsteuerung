@@ -2,14 +2,12 @@
   (:nicknames :datprot)
   (:use :cl :ol
         :com.gigamonkeys.binary-data)
+  (:import-from :com.gigamonkeys.binary-data
+                :read-object
+                :write-object)
   (:export
    :close-serial
    :open-serial))
-
-;; fix some missing exports in binary-data package
-(export '(com.gigamonkeys.binary-data::write-object
-          com.gigamonkeys.binary-data::read-object)
-        'com.gigamonkeys.binary-data)
 
 (in-package :datenprotokoll)
 
