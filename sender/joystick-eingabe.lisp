@@ -92,7 +92,7 @@
       (get-gas output-to-serial)
       (get-ruder output-to-serial))
      (io-stream output-to-serial))
-    (sleep #.(/ 10 1000))))
+    (sleep #.(/ 100 1000))))
 
 (defclass steuerung-output (steuerungsdaten-with-curves output-to-serial)
   ()
@@ -116,7 +116,7 @@
                                            :out-max gas-max)
                  :io-stream (datenprotokoll:open-serial serial-path)))
 
-(defun joystick-main-loop (js-spec data)
+(defun joystick-main-loop (js-spec data &optional quit-callback)
   "listen for joystick events, put the axis data into DATA according
 to JS-SPEC and call the SEND method on DATA from time to time."
   (destructuring-bind (&key id gas ruder) js-spec
@@ -132,17 +132,19 @@ to JS-SPEC and call the SEND method on DATA from time to time."
          (:quit-event ()
                       (when js
                         (sdl-cffi::sdl-joystick-close js))
+                      (when quit-callback
+                        (funcall quit-callback))
                       t)
          (:joy-axis-motion-event
           (:which joystick :axis axis :value value)
           (cond ((and (eql joystick id)
                       (eql axis gas))
-                 (setf (gas data) value)
-                 (send data))
+                 (setf (gas data) value))
                 ((and (eql joystick id)
                       (eql axis ruder))
-                 (setf (ruder data) value)
-                 (send data))))
+                 (setf (ruder data) value)))
+          (sleep (/ 1 100))
+          (sb-thread:thread-yield))
          (:idle ()
                 (sdl:clear-display sdl:*black*)
                 (sdl:draw-string-solid-* (format nil "Hello Katja")
@@ -151,9 +153,8 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                                          :justify :center
                                          :surface sdl:*default-display*)
                 (sdl:update-display)
-                ;;  always send data??
-                (send data)
-                )
+                (sleep (/ 1 100))
+                (sb-thread:thread-yield))
          (:video-expose-event ()
                               (sdl:update-display)))))))
 
@@ -171,8 +172,15 @@ to JS-SPEC and call the SEND method on DATA from time to time."
 (defparameter serial-io-path  "/dev/ttyUSB0")
 
 (defun steuerung-main (spec)
-  (let ((so (make-steuerung-output serial-io-path)))
+  (let ((so (make-steuerung-output serial-io-path))
+        (stop nil))
     (unwind-protect
-         (joystick-main-loop spec so)
+         (progn
+           (sb-thread:make-thread
+            (lambda () (joystick-main-loop spec so
+                                      (lambda () (setf stop t)))))
+           (do () (stop)
+             (send so)
+             (sb-thread:thread-yield)))
       (datenprotokoll:close-serial (io-stream so)))))
 
