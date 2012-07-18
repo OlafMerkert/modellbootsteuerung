@@ -22,33 +22,39 @@
   "Close the stream to the serial interface."
   (close stream ))
 
- ;; Read a byte, where the first bit is always 1, the next two bits
- ;;  are INDEX and the other 5 bits represent an unsigned integer.
-(define-binary-type axis-part (index )
+ ;; Read a byte, where the first bit is always 1, and we examine just
+;; the last BITLENGTH bits.  BITLENGTH must not exceed 7.
+(define-binary-type axis-part (bitlength)
   (:reader (in)
            (let ((byte (read-byte in)))
              (unless (and (eql (ldb (byte 1 7) byte) 1)
-                          (eql (ldb (byte 2 5) byte) (or index 0)))
-               (error "axis-part header invalid for index ~A" index))
-             (ldb (byte 5 0) byte)))
+)               (error "axis-part byte must start with 1."))
+             (ldb (byte bitlength 0) byte)))
   (:writer (out integer)
-           (setf (ldb (byte 2 5) integer) (or index 0)
-                 (ldb (byte 1 7) integer) 1)
+           (setf (ldb (byte 1 7) integer) 1)
            (write-byte integer out)))
 
-;; Split a 10bit unsigned integer into two bytes. The first byte
-;;   starts with 101, then follow the five higher bits of the integer,
-;;   the second byte starts with 110, then follow the five lower bits
-;;   of the integer.
-(define-binary-type axis-value ()
+(defun split-bitlength (bl)
+  "compute the sizes best suited to partition a bitvector into two
+parts."
+   (let ((smaller-part (floor bl 2)))
+    (values smaller-part (- bl smaller-part))))
+
+;; Split a an unsigned integer of BITLENGTH into two bytes, by
+;; splitting it evenly into the last BITLENGTH/2 bits of two bytes,
+;; that each begin with 1.. For odd bitlength, the first byte will use
+;; less bits than the second.
+(define-binary-type axis-value (bitlength)
   (:reader (in)
-           (+ (* #.(expt 2 5)
-                 (read-value 'axis-part in :index 1))
-              (read-value 'axis-part in :index 2)))
+           (multiple-value-bind (first-length second-length) (split-bitlength bitlength)
+            (+ (* (expt 2 second-length)
+                  (read-value 'axis-part in :bitlength first-length))
+               (read-value 'axis-part in :bitlength second-length))))
   (:writer (out integer)
-           (multiple-value-bind (first second) (floor integer #.(expt 2 5))
-             (write-value 'axis-part out first  :index 1)
-             (write-value 'axis-part out second :index 2))))
+           (multiple-value-bind (first-length second-length) (split-bitlength bitlength)
+  (multiple-value-bind (first second) (floor integer (expt 2 second-length))
+    (write-value 'axis-part out first  :bitlength first-length)
+    (write-value 'axis-part out second :bitlength second-length)))))
 
 (define-binary-type nullbyte ()
   (:reader (in)
@@ -60,8 +66,8 @@
            (write-byte 0 out)))
 
 (define-binary-class boot-steuerung ()
-  ((gas    axis-value)
-   (ruder  axis-value)
+  ((gas    (axis-value :bitlength 12))
+   (ruder  (axis-value :bitlength 12))
    (term   nullbyte)))
 
 (defun make-boot-steuerung (gas ruder)
@@ -76,7 +82,7 @@
          (steuer (make-boot-steuerung 0 0)))
     (unwind-protect
          (loop
-            for i from 0 below 10
+            for i from 0 below 12
             do
               (setf (gas steuer) (expt 2 i)
                     (ruder steuer) (expt 2 i))
