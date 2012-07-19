@@ -9,8 +9,10 @@
 
 (defparameter servo-max (- (expt 2 13) 1))
 
-(defclass steuerungsdaten ()
-  ((gas   :initarg :gas
+(defclass steuerung ()
+  ((io-stream :initarg :io-stream
+              :reader   io-stream)
+   (gas   :initarg :gas
           :initform 0
           :accessor gas)
    (ruder :initarg :ruder
@@ -18,13 +20,13 @@
           :accessor ruder))
   (:documentation "halte die Steuerungsdaten für das Boot vor."))
 
-(defmethod get-gas ((steuerungsdaten steuerungsdaten))
-  (floor (gas steuerungsdaten)))
+(defmethod get-gas ((steuerung steuerung))
+  (floor (gas steuerung)))
 
-(defmethod get-ruder ((steuerungsdaten steuerungsdaten))
-  (floor (ruder steuerungsdaten)))
+(defmethod get-ruder ((steuerung steuerung))
+  (floor (ruder steuerung)))
 
-(defclass steuerungsdaten-with-curves (steuerungsdaten)
+(defclass steuerung-with-curves (steuerung)
   ((gas-curve :initarg :gas-curve
               :initform #1=(make-instance 'affine-curve
                                           :in-min  -32768
@@ -37,6 +39,14 @@
                 :accessor ruder-curve))
   (:documentation "filter daten through curves, before one sends
   them."))
+
+(defmethod get-gas ((steuerung-with-curves steuerung-with-curves))
+  (with-slots (gas gas-curve) steuerung-with-curves
+    (floor (apply-curve gas-curve gas))))
+
+(defmethod get-ruder ((steuerung-with-curves steuerung-with-curves))
+  (with-slots (ruder ruder-curve) steuerung-with-curves
+    (floor (apply-curve ruder-curve ruder))))
 
 (defclass affine-curve ()
   ((scale)
@@ -65,46 +75,25 @@
   (with-slots (scale in-min  out-min) curve
     (+ (* scale (- number in-min)) out-min)))
 
-(defmethod get-gas ((steuerungsdaten-with-curves steuerungsdaten-with-curves))
-  (with-slots (gas gas-curve) steuerungsdaten-with-curves
-    (floor (apply-curve gas-curve gas))))
 
-(defmethod get-ruder ((steuerungsdaten-with-curves steuerungsdaten-with-curves))
-  (with-slots (ruder ruder-curve) steuerungsdaten-with-curves
-    (floor (apply-curve ruder-curve ruder))))
+(defun send (steuerung) 
+  (format t "Gas:  ~A  Ruder:  ~A~%"
+          (get-gas output-to-serial)
+          (get-ruder output-to-serial))
+  (datenprotokoll:write-object
+   (datenprotokoll:make-boot-steuerung
+    (get-gas   output-to-serial)
+    (get-ruder output-to-serial))
+   (io-stream output-to-serial))
+  (finish-output (io-stream output-to-serial) )
+  (sleep #.(/ 10 1000)))
 
-(defgeneric send (daten))
-
-(defclass output-to-serial ()
-  ((io-stream :initarg :io-stream
-              :reader   io-stream)
-   (busy :initform (sb-thread:make-mutex :name "serial output")
-         :accessor busy))
-  (:documentation "push gas and ruder daten to a serial interface"))
-
-(defmethod send ((output-to-serial output-to-serial))
-  (sb-thread:with-mutex ((busy output-to-serial))
-    (format t "Gas:  ~A  Ruder:  ~A~%"
-            (get-gas output-to-serial)
-            (get-ruder output-to-serial))
-    (datenprotokoll:write-object
-     (datenprotokoll:make-boot-steuerung
-      (get-gas   output-to-serial)
-      (get-ruder output-to-serial))
-     (io-stream output-to-serial))
-    (finish-output (io-stream output-to-serial) )
-    (sleep #.(/ 10 1000))))
-
-(defclass steuerung-output (steuerungsdaten-with-curves output-to-serial)
-  ()
-  (:documentation "doc"))
-
-(defun make-steuerung-output (serial-path &key
+(defun make-steuerung (serial-path &key
                                             (ruder-min 0)
                                             (ruder-max servo-max)
                                             (gas-min 0)
                                             (gas-max servo-max))
-  (make-instance 'steuerung-output
+  (make-instance 'steuerung-with-curves
                  :ruder-curve (make-instance 'affine-curve
                                              :in-min -32768
                                              :in-max 32767
@@ -144,7 +133,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                 ((and (eql joystick id)
                       (eql axis ruder))
                  (setf (ruder data) value)))
-          (sleep (/ 1 100))
+          (sleep #.(/ 1 100))
           (sb-thread:thread-yield))
          (:idle ()
                 (sdl:clear-display sdl:*black*)
@@ -154,7 +143,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                                          :justify :center
                                          :surface sdl:*default-display*)
                 (sdl:update-display)
-                (sleep (/ 1 100))
+                (sleep #.(/ 1 100))
                 (sb-thread:thread-yield))
          (:video-expose-event ()
                               (sdl:update-display)))))))
@@ -170,10 +159,12 @@ to JS-SPEC and call the SEND method on DATA from time to time."
     :gas   2
     :ruder 0))
 
-(defparameter serial-io-path  "/dev/ttyUSB0")
+(defparameter serial-io-path ;"/tmp/bootsteuerung.test";
+  "/dev/ttyUSB0"
+  )
 
 (defun steuerung-main (spec)
-  (let ((so (make-steuerung-output serial-io-path))
+  (let ((so (make-steuerung serial-io-path))
         (stop nil))
     (unwind-protect
          (progn
@@ -184,4 +175,3 @@ to JS-SPEC and call the SEND method on DATA from time to time."
              (send so)
              (sb-thread:thread-yield)))
       (datenprotokoll:close-serial (io-stream so)))))
-
