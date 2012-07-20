@@ -159,6 +159,11 @@ to JS-SPEC and call the SEND method on DATA from time to time."
     :gas   2
     :ruder 0))
 
+(defparameter xbox-spec
+  '(:id    0
+    :gas   5
+    :ruder 3))
+
 (defparameter serial-io-path ;"/tmp/bootsteuerung.test";
   "/dev/ttyUSB0"
   )
