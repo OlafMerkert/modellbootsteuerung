@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/sh
 
 # start sender with XBox controller in use
 
