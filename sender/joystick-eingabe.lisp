@@ -78,15 +78,15 @@
 
 (defun send (steuerung) 
   (format t "Gas:  ~A  Ruder:  ~A~%"
-          (get-gas output-to-serial)
-          (get-ruder output-to-serial))
+          (get-gas steuerung)
+          (get-ruder steuerung))
   (datenprotokoll:write-object
    (datenprotokoll:make-boot-steuerung
-    (get-gas   output-to-serial)
-    (get-ruder output-to-serial))
-   (io-stream output-to-serial))
-  (finish-output (io-stream output-to-serial) )
-  (sleep #.(/ 10 1000)))
+    (get-gas   steuerung)
+    (get-ruder steuerung))
+   (io-stream steuerung))
+  (finish-output (io-stream steuerung) )
+  (sleep #.(/ 5 1000)))
 
 (defun make-steuerung (serial-path &key
                                             (ruder-min 0)
@@ -133,7 +133,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                 ((and (eql joystick id)
                       (eql axis ruder))
                  (setf (ruder data) value)))
-          (sleep #.(/ 1 100))
+          (sleep #.(/ 1 1000))
           (sb-thread:thread-yield))
          (:idle ()
                 (sdl:clear-display sdl:*black*)
@@ -143,7 +143,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
                                          :justify :center
                                          :surface sdl:*default-display*)
                 (sdl:update-display)
-                (sleep #.(/ 1 100))
+                (sleep #.(/ 1 1000))
                 (sb-thread:thread-yield))
          (:video-expose-event ()
                               (sdl:update-display)))))))
