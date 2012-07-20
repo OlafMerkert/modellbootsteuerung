@@ -159,12 +159,21 @@ to JS-SPEC and call the SEND method on DATA from time to time."
     :gas   2
     :ruder 0))
 
+(defparameter xbox-spec
+  '(:id    0
+    :gas   5
+    :ruder 3))
+
 (defparameter serial-io-path ;"/tmp/bootsteuerung.test";
   "/dev/ttyUSB0"
   )
 
 (defun steuerung-main (spec)
-  (let ((so (make-steuerung serial-io-path))
+  (let ((so (make-steuerung serial-io-path
+			    :gas-min (ceiling servo-max 2)
+			    :gas-max servo-max
+			    :ruder-min (floor servo-max 4)
+			    :ruder-max (ceiling (* 3 servo-max) 4)))
         (stop nil))
     (unwind-protect
          (progn
