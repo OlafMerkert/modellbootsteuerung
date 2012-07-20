@@ -169,7 +169,11 @@ to JS-SPEC and call the SEND method on DATA from time to time."
   )
 
 (defun steuerung-main (spec)
-  (let ((so (make-steuerung serial-io-path))
+  (let ((so (make-steuerung serial-io-path
+			    :gas-min (ceiling servo-max 2)
+			    :gas-max servo-max
+			    :ruder-min (floor servo-max 4)
+			    :ruder-max (ceiling (* 3 servo-max) 4)))
         (stop nil))
     (unwind-protect
          (progn
