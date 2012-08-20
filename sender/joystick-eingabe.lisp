@@ -1,13 +1,41 @@
 (defpackage :joystick-eingabe
-  (:nicknames :joystick)
+  (:nicknames :jsin)
   (:use :cl :ol )
   (:export
    :list-joysticks
-   :steuerung-main))
+   :steuerung-main
+   :js-min
+   :js-max))
 
 (in-package :joystick-eingabe)
 
-(defparameter servo-max (- (expt 2 13) 1))
+(defparameter js-min -32768)
+(defparameter js-max  32767)
+
+(defun list-joysticks ()
+  "list all the joysticks found on this system, with name."
+  (sdl:with-init (sdl:sdl-init-joystick)
+    (loop for i from 0 below (sdl:num-joysticks)
+       collect (sdl:sdl-joystick-name i))))
+
+(defmacro in (one &rest others)
+  "Generate a test clauses that yields t if ONE is eql to any of the
+  OTHERS."
+  `(or ,@(mapcar #`(eql ,one ,a1) others)))
+
+(defun char-equal/relaxed (a b)
+  "treat spaces and dashes as equal."
+  (or (char-equal a b)
+      (and (in a #\space #\-)
+           (in b #\space #\-))))
+
+
+(defun find-joystick (controller)
+  "search for a joystick id whose name contains CONTROLLER (which is
+usually a symbol)."
+  (position-if (lambda (name)
+                 (search (mkstr controller) name :test #'char-equal/relaxed))
+               (list-joysticks)))
 
 (defclass steuerung ()
   ((io-stream :initarg :io-stream
@@ -148,11 +176,7 @@ to JS-SPEC and call the SEND method on DATA from time to time."
          (:video-expose-event ()
                               (sdl:update-display)))))))
 
-(defun list-joysticks ()
-  "list all the joysticks found on this system, with name."
-  (sdl:with-init (sdl:sdl-init-joystick)
-    (loop for i from 0 below (sdl:num-joysticks)
-       collect (sdl:sdl-joystick-name i))))
+
 
 (defparameter fighterstick-spec
   '(:id    1
