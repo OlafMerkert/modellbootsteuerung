@@ -8,7 +8,8 @@
    :js-max
    :find-joystick
    :process-js-input
-   :define-joystick-binding))
+   :define-joystick-binding
+   :joystick-main-loop))
 
 (in-package :joystick-eingabe)
 
@@ -169,63 +170,45 @@ usually a symbol)."
                                            :out-max gas-max)
                  :io-stream (datenprotokoll:open-serial serial-path)))
 
-(defun joystick-main-loop (js-spec data &optional quit-callback)
-  "listen for joystick events, put the axis data into DATA according
-to JS-SPEC and call the SEND method on DATA from time to time."
-  (destructuring-bind (&key id gas ruder) js-spec
-   (sdl:with-init (sdl:sdl-init-joystick)
-     (sdl:window 400 100
-                 :title-caption "Hello Katja"
-                 :icon-caption  "Hello Katja")
-     (setf (sdl:frame-rate) 30)
-     (sdl:initialise-default-font sdl:*font-8x8*)
-     (sdl-cffi::sdl-joystick-event-state sdl-cffi::sdl-enable)
-     (let ((js   (sdl-cffi::sdl-joystick-open id)))
-       (sdl:with-events ()
-         (:quit-event ()
-                      (when js
-                        (sdl-cffi::sdl-joystick-close js))
-                      (when quit-callback
-                        (funcall quit-callback))
-                      t)
-         (:joy-axis-motion-event
-          (:which joystick :axis axis :value value)
-          (cond ((and (eql joystick id)
-                      (eql axis gas))
-                 (setf (gas data) value))
-                ((and (eql joystick id)
-                      (eql axis ruder))
-                 (setf (ruder data) value)))
-          (sleep #.(/ 1 1000))
-          (sb-thread:thread-yield))
-         (:idle ()
-                (sdl:clear-display sdl:*black*)
-                (sdl:draw-string-solid-* (format nil "Hello Katja")
-                                         200 50
-                                         :color sdl:*white*
-                                         :justify :center
-                                         :surface sdl:*default-display*)
-                (sdl:update-display)
-                (sleep #.(/ 1 1000))
-                (sb-thread:thread-yield))
-         (:video-expose-event ()
-                              (sdl:update-display)))))))
+;; TODO allow using more than one stick at a time.
 
-
-
-(defparameter fighterstick-spec
-  '(:id    1
-    :gas   2
-    :ruder 0))
-
-(defparameter xbox-spec
-  '(:id    0
-    :gas   5
-    :ruder 3))
-
-(defparameter serial-io-path ;"/tmp/bootsteuerung.test";
-  "/dev/ttyUSB0"
-  )
+(defun joystick-main-loop (joystick model &optional quit-callback)
+  "listen for joystick events for the JOYSTICKS identified by symbols
+and send axis data from them to the model."
+  (sdl:with-init (sdl:sdl-init-joystick)
+    (sdl:window 400 100
+                :title-caption "Hello Katja"
+                :icon-caption  "Hello Katja")
+    (setf (sdl:frame-rate) 30)
+    (sdl:initialise-default-font sdl:*font-8x8*)
+    (sdl-cffi::sdl-joystick-event-state sdl-cffi::sdl-enable)
+    (let* ((id (find-joystick joystick))
+           (js (sdl-cffi::sdl-joystick-open id)))
+      (sdl:with-events ()
+        (:quit-event ()
+                     (when js
+                       (sdl-cffi::sdl-joystick-close js))
+                     (when quit-callback
+                       (funcall quit-callback))
+                     t)
+        (:joy-axis-motion-event
+         (:which joystick :axis axis :value value)
+         (when (eql joystick id)
+           (process-js-input joystick model axis value))
+         (sleep #.(expt 10 -3))
+         (sb-thread:thread-yield))
+        (:idle ()
+               (sdl:clear-display sdl:*black*)
+               (sdl:draw-string-solid-* (format nil "Hello Katja")
+                                        200 50
+                                        :color sdl:*white*
+                                        :justify :center
+                                        :surface sdl:*default-display*)
+               (sdl:update-display)
+               (sleep #.(expt 10 -3))
+               (sb-thread:thread-yield))
+        (:video-expose-event ()
+                             (sdl:update-display))))))
 
 (defun steuerung-main (spec)
   (let ((so (make-steuerung serial-io-path

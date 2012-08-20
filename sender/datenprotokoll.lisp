@@ -21,13 +21,17 @@
    :make-steuerung
    :define-rc-model
    :boot
-   :axis-range))
+   :axis-range
+   :serial-io-path))
 
 (in-package :datenprotokoll)
 
 (defconstant servo-resolution 14)
 
 (defparameter servo-max (- (expt 2 13) 1))
+
+(defparameter serial-io-path ;"/tmp/bootsteuerung.test";
+  "/dev/ttyUSB0")
 
 (defconstant baudrate 115200)
 
