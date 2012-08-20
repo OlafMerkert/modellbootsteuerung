@@ -10,8 +10,6 @@
    :open-serial
    :axis-value
    :nullbyte
-   :gas
-   :ruder
    :read-object
    :write-object
    :servo-resolution
@@ -20,7 +18,6 @@
    :model
    :make-steuerung
    :define-rc-model
-   :boot
    :axis-range
    :serial-io-path))
 
@@ -140,21 +137,3 @@ parts."
            (format stream
                    ,(format nil "~:(~A~)  ~{~:(~A~): ~~5D~^  ~}" name axes-names)
                    ,@axes-names))))))
-
-(define-rc-model boot
-    ((gas   :min (/ servo-max 2)   :max servo-max)
-     (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))))
-
-(defun test-steuerung/boot ()
-  "Create test output for controlling the boat."
-  (let* ((testfile #P "/tmp/steuerung.test")
-         (stream (open-serial testfile))
-         (steuer (make-steuerung 'boot)))
-    (unwind-protect
-         (loop
-            for i from 0 below 12
-            do
-              (setf (gas steuer) (expt 2 i)
-                    (ruder steuer) (expt 2 i))
-              (write-object steuer stream))
-      (close-serial stream))))

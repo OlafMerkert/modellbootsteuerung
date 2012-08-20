@@ -92,14 +92,6 @@ usually a symbol)."
                        (floor (apply-curve ,g!curve ,g!number)))))))
         bindings)))
 
-(define-joystick-binding fighterstick datprot:boot
-  ((datprot:gas   :axis 2)
-   (datprot:ruder :axis 0)))
-
-(define-joystick-binding xbox-controller datprot:boot
-  ((datprot:gas   :axis 5)
-   (datprot:ruder :axis 3)))
-
 ;; TODO allow using more than one stick at a time.
 
 (defun joystick-main-loop (joystick model &optional quit-callback)
