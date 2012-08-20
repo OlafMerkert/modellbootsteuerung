@@ -1,8 +1,9 @@
 * Modellbootfernsteuerung
 mit dem Computer
 
-** TODO Kontrolliere ein Modellboot
-mit zwei Kanälen, Ruder und Gas
+** DONE Kontrolliere beliebige Modellfahrzeuge
+mit beliebig vielen Kanälen.  Als Beispiel gibt es ein Modellboot mit
+Ruder und Gas, also zwei Kanälen.
 
 ** TODO Programmiere den ESC
 für den Motor, durch speziell getimte Ausschläge des Gaskanals
@@ -21,7 +22,7 @@ durch ein (oder mehrere) Nullbytes terminiert.
 ** Daten
 Die Ansteuerungswerte für die Servos werden als 10Bit Daten, verteilt
 auf je zwei Bytes pro Servo in einem Frame übertragen.  Ein Frame hat
-also immer eine gerade Anzahl von Bytes.
+also immer eine gerade Anzahl von Bytes, gefolgt von einem Nullbyte.
 
 Eine genauere Beschreibung findet sich in ~datenprotokoll.lisp~
 
@@ -31,6 +32,26 @@ Eine genauere Beschreibung findet sich in ~datenprotokoll.lisp~
 ** TODO Visualisierung der aktuellen Steuerungsdaten
 ** TODO Oberfläche zur Konfiguration der Joystickachsen
    Endpunkte, Totbereich, Achsenauswahl, Invertieren, Kurven
+   
+** Konfiguration eigener Fahrzeuge
+Das Makro ~define-rc-model~ erlaubt, eigene Modellfahrzeuge mit
+beliebig vielen Achsen zu definieren. Die Werte der Achsen werden
+stets in der angegebenen Reihenfolge übertragen, und auf den
+Ganzzahlen-Bereich, der durch die ~:min~ und ~:max~ Parameter für jede
+Achse angegeben werden kann, skaliert. Mit dem ~:reverse~ Parameter
+lässt sich die Rolle von ~:min~ und ~:max~ außerdem vertauschen. Diese
+Bereichseinstellung sollte mit der verwendeten Empfängersoftware
+harmonieren.
+
+** Konfiguration eigener Joysticks
+Das Makro ~define-joystick-binding~ wird verwendet, um die Achsen
+eines Joysticks auf die Kanäle eines Modellfahrzeugs abzubilden. Das
+Symbol für den Joystick sollte dabei im tatsächlichen Namen des
+Joysticks vorkommen. Die Achsennummer wird mit dem Parameter ~:axis~
+angegeben, und mit ~:reverse~ kann man die Achse bei Bedarf umkehren.
+Die Reihenfolge der Achsen spielt keine Rolle, es müssen auch nicht
+alle Achsen von jedem Joystick belegt werden--allerdings wird momentan
+die gleichzeitige Nutzung mehrerer Joysticks noch nicht unterstützt.
 
 * Erforderliche Software
 
