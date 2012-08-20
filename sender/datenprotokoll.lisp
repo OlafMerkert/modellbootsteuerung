@@ -16,7 +16,7 @@
    :setup-serial-port
    :servo-max
    :model
-   :make-steuerung
+   :make-model
    :define-rc-model
    :axis-range
    :serial-io-path))
@@ -107,7 +107,7 @@ parts."
 (defclass model ()
   ())
 
-(defgeneric make-steuerung (model &rest args))
+(defgeneric make-model (model &rest args))
 
 (defgeneric axis-range (model axis))
 
@@ -126,7 +126,7 @@ parts."
               `(defmethod axis-range ((,name (eql ',name)) (,axis (eql ',axis)))
                  `(:min ,,min :max ,,max))))
           axes)
-       (defmethod make-steuerung ((,name ,name) &rest args)
+       (defmethod make-model ((,name ,name) &rest args)
          (make-instance ',name
                         :term nil
                         ,@(mapcan (lambda (x) (list (keyw x)

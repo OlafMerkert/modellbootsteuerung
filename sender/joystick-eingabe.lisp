@@ -34,11 +34,11 @@
       (and (in a #\space #\-)
            (in b #\space #\-))))
 
-(defun find-joystick (controller)
+(defun find-joystick (joystick)
   "search for a joystick id whose name contains CONTROLLER (which is
 usually a symbol)."
   (position-if (lambda (name)
-                 (search (mkstr controller) name :test #'char-equal/relaxed))
+                 (search (mkstr joystick) name :test #'char-equal/relaxed))
                (list-joysticks)))
 
 (defclass affine-curve ()
@@ -68,11 +68,11 @@ usually a symbol)."
   (with-slots (scale in-min  out-min) curve
     (+ (* scale (- number in-min)) out-min)))
 
-(defgeneric process-js-input (controller model axis number))
+(defgeneric process-js-input (model joystick axis number))
 
-(defmethod process-js-input  (controller model (axis integer) (number number)))
+(defmethod process-js-input  (model joystick (axis integer) (number number)))
 
-(defmacro! define-joystick-binding (controller model bindings)
+(defmacro! define-joystick-binding (model joystick bindings)
   `(progn
      ,@(mapcar
         (lambda (binding)
@@ -84,8 +84,8 @@ usually a symbol)."
                                    :in-min ,min :in-max ,max
                                    :out-min (getf (datprot:axis-range ',model ',name) :min)
                                    :out-max (getf (datprot:axis-range ',model ',name) :max))))
-               (defmethod process-js-input ((,g!controller (eql ',controller))
-                                            (,g!model ,model)
+               (defmethod process-js-input ((,g!model ,model)
+                                            (,g!joystick (eql ',joystick))
                                             (,g!axis (eql ,axis))
                                             (,g!number number))
                  (setf (slot-value ,g!model ',name)
@@ -94,7 +94,7 @@ usually a symbol)."
 
 ;; TODO allow using more than one stick at a time.
 
-(defun joystick-main-loop (joystick model &optional quit-callback)
+(defun joystick-main-loop (model joystick &optional quit-callback)
   "listen for joystick events for the JOYSTICKS identified by symbols
 and send axis data from them to the model."
   (sdl:with-init (sdl:sdl-init-joystick)
@@ -116,7 +116,7 @@ and send axis data from them to the model."
         (:joy-axis-motion-event
          (:which joystick :axis axis :value value)
          (when (eql joystick id)
-           (process-js-input joystick model axis value))
+           (process-js-input model joystick axis value))
          (sleep #.(expt 10 -3))
          (sb-thread:thread-yield))
         (:idle ()

@@ -6,8 +6,8 @@
 
 (in-package :fernsteuerung)
 
-(defun steuerung (joystick model-type)
-  (let ((model (make-steuerung model-type))
+(defun steuerung (model-type joystick)
+  (let ((model (make-model model-type))
         (stop  nil)
         (io-stream (open-serial serial-io-path)))
     (unwind-protect
@@ -24,25 +24,26 @@
              (sleep #.(expt 10 -1.5))
              (sb-thread:thread-yield))))))
 
-(define-rc-model boot
-    ((gas   :min (/ servo-max 2)   :max servo-max)
-     (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))))
+(progn
+  (define-rc-model boot
+     ((gas   :min (/ servo-max 2)   :max servo-max)
+      (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))))
 
 
-(define-joystick-binding fighterstick boot
-  ((gas   :axis 2)
-   (ruder :axis 0)))
+  (define-joystick-binding boot fighterstick
+    ((gas   :axis 2)
+     (ruder :axis 0)))
 
-(define-joystick-binding xbox-controller boot
-  ((gas   :axis 5)
-   (ruder :axis 3)))
+  (define-joystick-binding boot xbox-controller
+    ((gas   :axis 5)
+     (ruder :axis 3))))
 
 
-(defun test-steuerung/boot ()
+(defun test-model/boot ()
   "Create test output for controlling the boat."
   (let* ((testfile #P "/tmp/steuerung.test")
          (stream (open-serial testfile))
-         (steuer (make-steuerung 'boot)))
+         (model (make-model 'boot)))
     (unwind-protect
          (loop
             for i from 0 below 12
