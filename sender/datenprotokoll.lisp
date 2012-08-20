@@ -59,8 +59,8 @@
 (define-binary-type axis-part (bitlength)
   (:reader (in)
            (let ((byte (read-byte in)))
-             (unless (and (eql (ldb (byte 1 7) byte) 1)
-)               (error "axis-part byte must start with 1."))
+             (unless (and (eql (ldb (byte 1 7) byte) 1))
+               (error "axis-part byte must start with 1."))
              (ldb (byte bitlength 0) byte)))
   (:writer (out integer)
            (setf (ldb (byte 1 7) integer) 1)
@@ -97,21 +97,32 @@ parts."
            (declare (ignore value))
            (write-byte 0 out)))
 
-(define-binary-class boot-steuerung ()
-  ((gas    (axis-value :bitlength servo-resolution))
-   (ruder  (axis-value :bitlength servo-resolution))
-   (term   nullbyte)))
+(defclass model ()
+  ())
 
-(defun make-boot-steuerung (gas ruder)
-  (make-instance 'boot-steuerung :term nil
-                 :gas   gas
-                 :ruder ruder))
+(defgeneric make-steuerung (model &rest args))
 
-(defun test/boot-steuerung ()
+(defmacro define-rc-model (name axes)
+  (let ((axes (mapcar (lambda (x) (if (consp x) x (list x))) axes)))
+   `(progn
+      (define-binary-class ,name (model)
+        (,@(mapcar #`(,(first a1) (axis-value :bitlength servo-resolution)) axes)
+           (term nullbyte)))
+      (setf (get ',name 'rc-model-axes) (list ,@(mapcan #`(',(first a1)) axes)))
+      (defmethod make-steuerung ((,name ,name) &rest args)
+        (make-instance ',name
+                       :term nil
+                       ,@(mapcan (lambda (x) (list (keyw (first x)) '(or (pop args) 0))) axes))))))
+
+(define-rc-model boot
+    ((gas   :min 0 :max 1)
+     (ruder :min 0 :max 1)))
+
+(defun test-steuerung/boot ()
   "Create test output for controlling the boat."
-  (let* ((testfile #P "/tmp/bootsteuerung.test")
+  (let* ((testfile #P "/tmp/steuerung.test")
          (stream (open-serial testfile))
-         (steuer (make-boot-steuerung 0 0)))
+         (steuer (make-steuerung 'boot)))
     (unwind-protect
          (loop
             for i from 0 below 12
