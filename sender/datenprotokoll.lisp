@@ -10,8 +10,6 @@
    :open-serial
    :axis-value
    :nullbyte
-   :boot-steuerung
-   :make-boot-steuerung
    :gas
    :ruder
    :read-object
@@ -23,7 +21,7 @@
    :make-steuerung
    :define-rc-model
    :boot
-   :axis-info))
+   :axis-range))
 
 (in-package :datenprotokoll)
 
@@ -110,20 +108,26 @@ parts."
 
 (defgeneric make-steuerung (model &rest args))
 
+(defgeneric axis-range (model axis))
+
 (defmacro define-rc-model (name axes)
   (let ((axes (mapcar (lambda (x) (if (consp x) x (list x))) axes)))
    `(progn
       (define-binary-class ,name (model)
         (,@(mapcar #`(,(first a1) (axis-value :bitlength servo-resolution)) axes)
            (term nullbyte)))
-      (setf (get ',name 'rc-model-axes) ',axes)
+      ,@(mapcar
+         (lambda (axis)
+           (destructuring-bind (axis &key (min 0) (max servo-max) (reverse nil)) axis
+             (when reverse
+               (rotatef min max))
+             `(defmethod axis-range ((,name (eql ',name)) (,axis (eql ',axis)))
+                `(:min ,,min :max ,,max))))
+         axes)
       (defmethod make-steuerung ((,name ,name) &rest args)
         (make-instance ',name
                        :term nil
                        ,@(mapcan (lambda (x) (list (keyw (first x)) '(or (pop args) 0))) axes))))))
-
-(defun axis-info (model axis)
-  (assoc axis (get model 'rc-model-axes)))
 
 (define-rc-model boot
     ((gas   :min (/ servo-max 2)   :max servo-max)
