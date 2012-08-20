@@ -4,6 +4,6 @@
 
 sbcl <<EOF
 (ql:quickload 'hello-katja-sender)
-(in-package :joystick)
-(steuerung-main xbox-spec)
+(in-package :fernsteuerung)
+(steuerung-main 'boot 'xbox-controller)
 EOF
