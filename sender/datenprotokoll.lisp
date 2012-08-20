@@ -115,10 +115,11 @@ parts."
 (defgeneric axis-range (model axis))
 
 (defmacro define-rc-model (name axes)
-  (let ((axes (mapcar (lambda (x) (if (consp x) x (list x))) axes)))
+  (let* ((axes (mapcar (lambda (x) (if (consp x) x (list x))) axes))
+         (axes-names (mapcar #'first axes)))
     `(progn
        (define-binary-class ,name (model)
-         (,@(mapcar #`(,(first a1) (axis-value :bitlength servo-resolution)) axes)
+         (,@(mapcar #`(, a1 (axis-value :bitlength servo-resolution)) axes-names)
             (term nullbyte)))
        ,@(mapcar
           (lambda (axis)
@@ -131,9 +132,14 @@ parts."
        (defmethod make-steuerung ((,name ,name) &rest args)
          (make-instance ',name
                         :term nil
-                        ,@(mapcan (lambda (x) (list (keyw (first x))
+                        ,@(mapcan (lambda (x) (list (keyw x)
                                                `(or (pop args) 0)))
-                                  axes))))))
+                                  axes-names)))
+       (defmethod print-object ((,name ,name) stream)
+         (with-slots ,axes-names ,name
+           (format stream
+                   ,(format nil "~:(~A~)  ~{~:(~A~): ~~5D~^  ~}" name axes-names)
+                   ,@axes-names))))))
 
 (define-rc-model boot
     ((gas   :min (/ servo-max 2)   :max servo-max)
