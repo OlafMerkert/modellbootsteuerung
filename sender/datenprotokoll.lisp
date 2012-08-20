@@ -17,11 +17,19 @@
    :read-object
    :write-object
    :servo-resolution
-   :setup-serial-port))
+   :setup-serial-port
+   :servo-max
+   :model
+   :make-steuerung
+   :define-rc-model
+   :boot
+   :axis-info))
 
 (in-package :datenprotokoll)
 
 (defconstant servo-resolution 14)
+
+(defparameter servo-max (- (expt 2 13) 1))
 
 (defconstant baudrate 115200)
 
@@ -108,15 +116,18 @@ parts."
       (define-binary-class ,name (model)
         (,@(mapcar #`(,(first a1) (axis-value :bitlength servo-resolution)) axes)
            (term nullbyte)))
-      (setf (get ',name 'rc-model-axes) (list ,@(mapcan #`(',(first a1)) axes)))
+      (setf (get ',name 'rc-model-axes) ',axes)
       (defmethod make-steuerung ((,name ,name) &rest args)
         (make-instance ',name
                        :term nil
                        ,@(mapcan (lambda (x) (list (keyw (first x)) '(or (pop args) 0))) axes))))))
 
+(defun axis-info (model axis)
+  (assoc axis (get model 'rc-model-axes)))
+
 (define-rc-model boot
-    ((gas   :min 0 :max 1)
-     (ruder :min 0 :max 1)))
+    ((gas   :min (/ servo-max 2)   :max servo-max)
+     (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))))
 
 (defun test-steuerung/boot ()
   "Create test output for controlling the boat."
