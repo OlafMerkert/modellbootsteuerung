@@ -5,7 +5,10 @@
    :list-joysticks
    :steuerung-main
    :js-min
-   :js-max))
+   :js-max
+   :find-joystick
+   :process-js-input
+   :define-joystick-binding))
 
 (in-package :joystick-eingabe)
 
@@ -36,6 +39,39 @@ usually a symbol)."
   (position-if (lambda (name)
                  (search (mkstr controller) name :test #'char-equal/relaxed))
                (list-joysticks)))
+
+
+(defgeneric process-js-input (controller model axis number))
+
+(defmethod process-js-input  (controller model (axis integer) (number number)))
+
+(defmacro! define-joystick-binding (controller model bindings)
+  `(progn
+     ,@(mapcar
+        (lambda (binding)
+          (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil)) binding
+            (when reverse
+              (rotatef min max))
+            `(let ((,g!curve
+                    (make-instance 'affine-curve
+                                   :in-min js-min :in-max max
+                                   :out-min (getf (datprot:axis-range ',model ',name) :min)
+                                   :out-max (getf (datprot:axis-range ',model ',name) :max))))
+               (defmethod process-js-input ((,g!controller (eql ',controller))
+                                            (,g!model ',model)
+                                            (,g!axis (eql ,axis))
+                                            (,g!number number))
+                 (setf (slot-value ,g!model ',name)
+                       (floor (apply-curve ,g!curve ,g!number)))))))
+        bindings)))
+
+(define-joystick-binding fighterstick boot
+  ((gas   :axis 2)
+   (ruder :axis 0)))
+
+(define-joystick-binding xbox-controller boot
+  ((gas   :axis 5)
+   (ruder :axis 3)))
 
 (defclass steuerung ()
   ((io-stream :initarg :io-stream
@@ -102,7 +138,6 @@ usually a symbol)."
 (defmethod apply-curve ((curve affine-curve) number)
   (with-slots (scale in-min  out-min) curve
     (+ (* scale (- number in-min)) out-min)))
-
 
 (defun send (steuerung) 
   (format t "Gas:  ~A  Ruder:  ~A~%"
