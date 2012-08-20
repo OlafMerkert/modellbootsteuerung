@@ -9,12 +9,13 @@
    :find-joystick
    :process-js-input
    :define-joystick-binding
-   :joystick-main-loop))
+   :joystick-main-loop
+   :affine-curve))
 
 (in-package :joystick-eingabe)
 
-(defparameter js-min -32768)
-(defparameter js-max  32767)
+(ew (defparameter js-min -32768)
+    (defparameter js-max  32767))
 
 (defun list-joysticks ()
   "list all the joysticks found on this system, with name."
@@ -39,39 +40,6 @@ usually a symbol)."
   (position-if (lambda (name)
                  (search (mkstr controller) name :test #'char-equal/relaxed))
                (list-joysticks)))
-
-
-(defgeneric process-js-input (controller model axis number))
-
-(defmethod process-js-input  (controller model (axis integer) (number number)))
-
-(defmacro! define-joystick-binding (controller model bindings)
-  `(progn
-     ,@(mapcar
-        (lambda (binding)
-          (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil)) binding
-            (when reverse
-              (rotatef min max))
-            `(let ((,g!curve
-                    (make-instance 'affine-curve
-                                   :in-min js-min :in-max max
-                                   :out-min (getf (datprot:axis-range ',model ',name) :min)
-                                   :out-max (getf (datprot:axis-range ',model ',name) :max))))
-               (defmethod process-js-input ((,g!controller (eql ',controller))
-                                            (,g!model ',model)
-                                            (,g!axis (eql ,axis))
-                                            (,g!number number))
-                 (setf (slot-value ,g!model ',name)
-                       (floor (apply-curve ,g!curve ,g!number)))))))
-        bindings)))
-
-(define-joystick-binding fighterstick boot
-  ((gas   :axis 2)
-   (ruder :axis 0)))
-
-(define-joystick-binding xbox-controller boot
-  ((gas   :axis 5)
-   (ruder :axis 3)))
 
 (defclass affine-curve ()
   ((scale)
@@ -100,23 +68,37 @@ usually a symbol)."
   (with-slots (scale in-min  out-min) curve
     (+ (* scale (- number in-min)) out-min)))
 
-(defun make-steuerung (serial-path &key
-                                            (ruder-min 0)
-                                            (ruder-max servo-max)
-                                            (gas-min 0)
-                                            (gas-max servo-max))
-  (make-instance 'steuerung-with-curves
-                 :ruder-curve (make-instance 'affine-curve
-                                             :in-min -32768
-                                             :in-max 32767
-                                             :out-min ruder-min
-                                             :out-max ruder-max)
-                 :gas-curve (make-instance 'affine-curve
-                                           :in-min -32768
-                                           :in-max 32767
-                                           :out-min gas-min
-                                           :out-max gas-max)
-                 :io-stream (datenprotokoll:open-serial serial-path)))
+(defgeneric process-js-input (controller model axis number))
+
+(defmethod process-js-input  (controller model (axis integer) (number number)))
+
+(defmacro! define-joystick-binding (controller model bindings)
+  `(progn
+     ,@(mapcar
+        (lambda (binding)
+          (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil)) binding
+            (when reverse
+              (rotatef min max))
+            `(let ((,g!curve
+                    (make-instance 'affine-curve
+                                   :in-min ,min :in-max ,max
+                                   :out-min (getf (datprot:axis-range ',model ',name) :min)
+                                   :out-max (getf (datprot:axis-range ',model ',name) :max))))
+               (defmethod process-js-input ((,g!controller (eql ',controller))
+                                            (,g!model ,model)
+                                            (,g!axis (eql ,axis))
+                                            (,g!number number))
+                 (setf (slot-value ,g!model ',name)
+                       (floor (apply-curve ,g!curve ,g!number)))))))
+        bindings)))
+
+(define-joystick-binding fighterstick datprot:boot
+  ((datprot:gas   :axis 2)
+   (datprot:ruder :axis 0)))
+
+(define-joystick-binding xbox-controller datprot:boot
+  ((datprot:gas   :axis 5)
+   (datprot:ruder :axis 3)))
 
 ;; TODO allow using more than one stick at a time.
 
