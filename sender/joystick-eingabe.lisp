@@ -33,7 +33,6 @@
       (and (in a #\space #\-)
            (in b #\space #\-))))
 
-
 (defun find-joystick (controller)
   "search for a joystick id whose name contains CONTROLLER (which is
 usually a symbol)."
@@ -74,45 +73,6 @@ usually a symbol)."
   ((gas   :axis 5)
    (ruder :axis 3)))
 
-(defclass steuerung ()
-  ((io-stream :initarg :io-stream
-              :reader   io-stream)
-   (gas   :initarg :gas
-          :initform 0
-          :accessor gas)
-   (ruder :initarg :ruder
-          :initform 0
-          :accessor ruder))
-  (:documentation "halte die Steuerungsdaten für das Boot vor."))
-
-(defmethod get-gas ((steuerung steuerung))
-  (floor (gas steuerung)))
-
-(defmethod get-ruder ((steuerung steuerung))
-  (floor (ruder steuerung)))
-
-(defclass steuerung-with-curves (steuerung)
-  ((gas-curve :initarg :gas-curve
-              :initform #1=(make-instance 'affine-curve
-                                          :in-min  -32768
-                                          :in-max 32767
-                                          :out-min 0
-                                          :out-max servo-max)
-              :accessor gas-curve)
-   (ruder-curve :initarg :ruder-curve
-                :initform #1#
-                :accessor ruder-curve))
-  (:documentation "filter daten through curves, before one sends
-  them."))
-
-(defmethod get-gas ((steuerung-with-curves steuerung-with-curves))
-  (with-slots (gas gas-curve) steuerung-with-curves
-    (floor (apply-curve gas-curve gas))))
-
-(defmethod get-ruder ((steuerung-with-curves steuerung-with-curves))
-  (with-slots (ruder ruder-curve) steuerung-with-curves
-    (floor (apply-curve ruder-curve ruder))))
-
 (defclass affine-curve ()
   ((scale)
    (in-min  :initarg :in-min
@@ -139,18 +99,6 @@ usually a symbol)."
 (defmethod apply-curve ((curve affine-curve) number)
   (with-slots (scale in-min  out-min) curve
     (+ (* scale (- number in-min)) out-min)))
-
-(defun send (steuerung) 
-  (format t "Gas:  ~A  Ruder:  ~A~%"
-          (get-gas steuerung)
-          (get-ruder steuerung))
-  (datenprotokoll:write-object
-   (datenprotokoll:make-boot-steuerung
-    (get-gas   steuerung)
-    (get-ruder steuerung))
-   (io-stream steuerung))
-  (finish-output (io-stream steuerung) )
-  (sleep #.(/ 5 1000)))
 
 (defun make-steuerung (serial-path &key
                                             (ruder-min 0)
@@ -209,20 +157,3 @@ and send axis data from them to the model."
                (sb-thread:thread-yield))
         (:video-expose-event ()
                              (sdl:update-display))))))
-
-(defun steuerung-main (spec)
-  (let ((so (make-steuerung serial-io-path
-			    :gas-min (ceiling servo-max 2)
-			    :gas-max servo-max
-			    :ruder-min (floor servo-max 4)
-			    :ruder-max (ceiling (* 3 servo-max) 4)))
-        (stop nil))
-    (unwind-protect
-         (progn
-           (sb-thread:make-thread
-            (lambda () (joystick-main-loop spec so
-                                      (lambda () (setf stop t)))))
-           (do () (stop)
-             (send so)
-             (sb-thread:thread-yield)))
-      (datenprotokoll:close-serial (io-stream so)))))

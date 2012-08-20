@@ -116,22 +116,24 @@ parts."
 
 (defmacro define-rc-model (name axes)
   (let ((axes (mapcar (lambda (x) (if (consp x) x (list x))) axes)))
-   `(progn
-      (define-binary-class ,name (model)
-        (,@(mapcar #`(,(first a1) (axis-value :bitlength servo-resolution)) axes)
-           (term nullbyte)))
-      ,@(mapcar
-         (lambda (axis)
-           (destructuring-bind (axis &key (min 0) (max servo-max) (reverse nil)) axis
-             (when reverse
-               (rotatef min max))
-             `(defmethod axis-range ((,name (eql ',name)) (,axis (eql ',axis)))
-                `(:min ,,min :max ,,max))))
-         axes)
-      (defmethod make-steuerung ((,name ,name) &rest args)
-        (make-instance ',name
-                       :term nil
-                       ,@(mapcan (lambda (x) (list (keyw (first x)) '(or (pop args) 0))) axes))))))
+    `(progn
+       (define-binary-class ,name (model)
+         (,@(mapcar #`(,(first a1) (axis-value :bitlength servo-resolution)) axes)
+            (term nullbyte)))
+       ,@(mapcar
+          (lambda (axis)
+            (destructuring-bind (axis &key (min 0) (max servo-max) (reverse nil)) axis
+              (when reverse
+                (rotatef min max))
+              `(defmethod axis-range ((,name (eql ',name)) (,axis (eql ',axis)))
+                 `(:min ,,min :max ,,max))))
+          axes)
+       (defmethod make-steuerung ((,name ,name) &rest args)
+         (make-instance ',name
+                        :term nil
+                        ,@(mapcan (lambda (x) (list (keyw (first x))
+                                               `(or (pop args) 0)))
+                                  axes))))))
 
 (define-rc-model boot
     ((gas   :min (/ servo-max 2)   :max servo-max)

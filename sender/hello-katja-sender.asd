@@ -4,4 +4,5 @@
                lispbuilder-sdl)
   :serial t
   :components ((:file "datenprotokoll")
-               (:file "joystick-eingabe")))
+               (:file "joystick-eingabe")
+               (:file "fernsteuerung")))
