@@ -61,7 +61,7 @@
          (loop
             for i from 0 below 12
             do
-              (setf (gas steuer) (expt 2 i)
-                    (ruder steuer) (expt 2 i))
-              (write-object steuer stream))
+              (setf (gas model) (expt 2 i)
+                    (ruder model) (expt 2 i))
+              (write-object model stream))
       (close-serial stream))))
