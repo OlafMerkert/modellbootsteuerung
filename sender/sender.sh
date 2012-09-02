@@ -5,5 +5,5 @@
 sbcl <<EOF
 (ql:quickload 'hello-katja-sender)
 (in-package :fernsteuerung)
-(steuerung-main 'boot 'xbox-controller)
+(steuerung 'flugzeug 'Hotas-X)
 EOF
