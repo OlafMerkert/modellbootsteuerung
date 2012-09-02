@@ -27,7 +27,8 @@
 (progn
   (define-rc-model boot
      ((gas   :min (/ servo-max 2)   :max servo-max)
-      (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))))
+      (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max)
+             :reverse t)))
 
   ;; NOTE: changes to rc-model axis scaling take effect only when the
   ;; bindings are redefined.
