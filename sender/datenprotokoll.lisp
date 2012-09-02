@@ -126,7 +126,7 @@ parts."
               `(defmethod axis-range ((,name (eql ',name)) (,axis (eql ',axis)))
                  `(:min ,,min :max ,,max))))
           axes)
-       (defmethod make-model ((,name ,name) &rest args)
+       (defmethod make-model ((,name (eql ',name)) &rest args)
          (make-instance ',name
                         :term nil
                         ,@(mapcan (lambda (x) (list (keyw x)
