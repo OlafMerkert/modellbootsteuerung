@@ -22,7 +22,8 @@
    :serial-io-path
    :register-model
    :register-binding
-   :known-models))
+   :model-list
+   :binding-list))
 
 (in-package :datenprotokoll)
 
@@ -40,6 +41,14 @@
 
 (defun register-binding (model joystick)
   (pushnew joystick (gethash model known-models)))
+
+(defun model-list ()
+  (let (list)
+    (maphash (ilambda (m b) (push m list)) known-models)
+    list))
+
+(defun binding-list (model)
+  (gethash model known-models))
 
 (defconstant baudrate 115200)
 
