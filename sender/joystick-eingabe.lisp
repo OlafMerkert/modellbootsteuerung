@@ -17,11 +17,13 @@
 (ew (defparameter js-min -32768)
     (defparameter js-max  32767))
 
-(defun list-joysticks ()
+(defun list-joysticks (&optional sdl-on)
   "list all the joysticks found on this system, with name."
-  (sdl:with-init (sdl:sdl-init-joystick)
-    (loop for i from 0 below (sdl:num-joysticks)
-       collect (sdl:sdl-joystick-name i))))
+  (if (not sdl-on)
+      (sdl:with-init (sdl:sdl-init-joystick)
+        #1=(loop for i from 0 below (sdl:num-joysticks)
+              collect (sdl:sdl-joystick-name i)))
+      #1#))
 
 (defmacro in (one &rest others)
   "Generate a test clauses that yields t if ONE is eql to any of the
@@ -34,12 +36,12 @@
       (and (in a #\space #\-)
            (in b #\space #\-))))
 
-(defun find-joystick (joystick)
+(defun find-joystick (joystick &optional sdl-on)
   "search for a joystick id whose name contains CONTROLLER (which is
 usually a symbol)."
   (position-if (lambda (name)
                  (search (mkstr joystick) name :test #'char-equal/relaxed))
-               (list-joysticks)))
+               (list-joysticks sdl-on)))
 
 (defclass affine-curve ()
   ((scale)
@@ -97,15 +99,17 @@ usually a symbol)."
 (defun joystick-main-loop (model joystick &optional quit-callback)
   "listen for joystick events for the JOYSTICKS identified by symbols
 and send axis data from them to the model."
-  (sdl:with-init (sdl:sdl-init-joystick)
+  (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-joystick)
     (sdl:window 400 100
                 :title-caption "Hello Katja"
                 :icon-caption  "Hello Katja")
     (setf (sdl:frame-rate) 30)
     (sdl:initialise-default-font sdl:*font-8x8*)
     (sdl-cffi::sdl-joystick-event-state sdl-cffi::sdl-enable)
-    (let* ((id (find-joystick joystick))
-           (js (sdl-cffi::sdl-joystick-open id)))
+    (let* ((id (find-joystick joystick t))
+           (js (progn
+                 (dbug "Joystick id: ~A" id)
+                 (sdl-cffi::sdl-joystick-open id))))
       (sdl:with-events ()
         (:quit-event ()
                      (when js
@@ -114,8 +118,8 @@ and send axis data from them to the model."
                        (funcall quit-callback))
                      t)
         (:joy-axis-motion-event
-         (:which joystick :axis axis :value value)
-         (when (eql joystick id)
+         (:which jsid :axis axis :value value)
+         (when (eql jsid id)
            (process-js-input model joystick axis value))
          (sleep #.(expt 10 -3))
          (sb-thread:thread-yield))
@@ -124,8 +128,7 @@ and send axis data from them to the model."
                (sdl:draw-string-solid-* (format nil "Hello Katja")
                                         200 50
                                         :color sdl:*white*
-                                        :justify :center
-                                        :surface sdl:*default-display*)
+                                        :justify :center)
                (sdl:update-display)
                (sleep #.(expt 10 -3))
                (sb-thread:thread-yield))
