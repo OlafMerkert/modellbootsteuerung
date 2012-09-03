@@ -13,7 +13,7 @@
     (unwind-protect
          (progn
            (sb-thread:make-thread
-            (lambda () (joystick-main-loop joystick model
+            (lambda () (joystick-main-loop model joystick
                                            (lambda () (setf stop t)))))
            (do () (stop)
              (format t "~A~%" model)

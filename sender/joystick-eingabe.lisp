@@ -108,7 +108,7 @@ and send axis data from them to the model."
     (sdl-cffi::sdl-joystick-event-state sdl-cffi::sdl-enable)
     (let* ((id (find-joystick joystick t))
            (js (progn
-                 (dbug "Joystick id: ~A" id)
+                 (dbug "Joystick name: ~A and id: ~A" joystick id)
                  (sdl-cffi::sdl-joystick-open id))))
       (sdl:with-events ()
         (:quit-event ()
