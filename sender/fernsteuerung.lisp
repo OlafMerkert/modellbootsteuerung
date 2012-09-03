@@ -28,7 +28,7 @@
 (progn
   (define-rc-model boot
      ((gas   :min (/ servo-max 2)   :max servo-max)
-      (ruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max)
+      (ruder :min (* 1/4 servo-max) :max (* 3/4 servo-max)
              :reverse t)))
 
   ;; NOTE: changes to rc-model axis scaling take effect only when the
@@ -44,15 +44,21 @@
 
 (let ((servo-max (- (expt 2 12) 1)))
   (define-rc-model flugzeug
-     ((gas   :min (/ servo-max 2)   :max servo-max)
-      (hoehenruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))
-      (seitenruder :min (* 1/4 servo-max) :max  (* 3/4 servo-max))))
+     ((gas         :min (/ servo-max 2)   :max servo-max)
+      (hoehenruder :min (* 1/4 servo-max) :max (* 3/4 servo-max))
+      (seitenruder :min (* 1/4 servo-max) :max (* 3/4 servo-max))))
   
-  (define-joystick-binding flugzeug Hotas-X
-    ((gas   :axis 2 :reverse t)
+  (define-joystick-binding flugzeug hotas-x
+    ((gas         :axis 2 :reverse t)
+     (hoehenruder :axis 1)
+     (seitenruder :axis 0)))
+
+  (define-joystick-binding flugzeug fighterstick
+    ((gas :axis 2)
      (hoehenruder :axis 1)
      (seitenruder :axis 0))))
 
+;;; some test functions
 (defun test-model/boot ()
   "Create test output for controlling the boat."
   (let* ((testfile #P "/tmp/steuerung.test")
