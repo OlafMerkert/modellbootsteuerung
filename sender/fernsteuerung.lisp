@@ -22,7 +22,8 @@
              (write-object model io-stream)
              (finish-output io-stream)
              (sleep #.(expt 10 -1.5))
-             (sb-thread:thread-yield))))))
+             (sb-thread:thread-yield)))
+      (close-serial io-stream))))
 
 (progn
   (define-rc-model boot
