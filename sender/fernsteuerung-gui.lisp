@@ -17,11 +17,11 @@
    (selected-binding :initform nil
                      :accessor selected-binding))
   (:panes
-   (model-menu (make-pane 'option-pane
-                          :items (models *application-frame*)
+   (model-menu (make-pane 'list-pane
+                          :items #2=(models *application-frame*)
                           :mode :one-of))
-   (binding-menu (make-pane 'option-pane
-                            :items (bindings *application-frame*)
+   (binding-menu (make-pane 'list-pane
+                            :items #3=(bindings *application-frame*)
                             :mode :one-of))
    (start-button (make-pane 'push-button-pane
                             :label "Steuerung starten"
@@ -29,13 +29,13 @@
    (quit-button (make-pane 'push-button-pane
                            :label "Abbrechen")))
   (:layouts (default
-                (vertically (:width 400)
+                (vertically ()
                   (300 (horizontally ()
-                       (1/2 model-menu)
-                       (1/2 binding-menu)))
+                       (200 model-menu)
+                       (200 binding-menu)))
                   (25 (horizontally ()
-                        (60 quit-button)
-                        (60 start-button)))))))
+                        (120 quit-button)
+                        (120 start-button)))))))
 
 (define-model-selector-command (com-quit-frame :name t :menu nil)
     ()
@@ -45,3 +45,6 @@
   (run-frame-top-level
    (make-application-frame 'model-selector :pretty-name "Modellauswahl"
                            :models (datprot:model-list))))
+
+(defun start-steuerung (button)
+  (declare (ignorable button)))
