@@ -19,7 +19,10 @@
    :make-model
    :define-rc-model
    :axis-range
-   :serial-io-path))
+   :serial-io-path
+   :register-model
+   :register-binding
+   :known-models))
 
 (in-package :datenprotokoll)
 
@@ -27,8 +30,16 @@
 
 (defparameter servo-max (- (expt 2 13) 1))
 
-(defparameter serial-io-path ;"/tmp/bootsteuerung.test";
-  "/dev/ttyUSB0")
+(defparameter serial-io-path #P"/dev/ttyUSB0")
+
+(defvar known-models (make-hash-table))
+
+(defun register-model (model)
+  (unless (nth-value 1 #1=(gethash model known-models))
+    (setf #1# nil)))
+
+(defun register-binding (model joystick)
+  (pushnew joystick (gethash model known-models)))
 
 (defconstant baudrate 115200)
 
@@ -115,6 +126,7 @@ parts."
   (let* ((axes (mapcar (lambda (x) (if (consp x) x (list x))) axes))
          (axes-names (mapcar #'first axes)))
     `(progn
+       (register-model ',name)
        (define-binary-class ,name (model)
          (,@(mapcar #`(, a1 (axis-value :bitlength servo-resolution)) axes-names)
             (term nullbyte)))

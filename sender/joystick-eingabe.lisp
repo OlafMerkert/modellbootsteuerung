@@ -76,6 +76,7 @@ usually a symbol)."
 
 (defmacro! define-joystick-binding (model joystick bindings)
   `(progn
+     (datenprotokoll:register-binding ',model ',joystick)
      ,@(mapcar
         (lambda (binding)
           (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil)) binding
