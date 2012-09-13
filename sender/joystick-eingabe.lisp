@@ -62,13 +62,28 @@ usually a symbol)."
 (defmethod initialize-instance :after ((affine-curve affine-curve) &rest args)
   (declare (ignore args))
   (with-slots (scale in-min in-max out-min out-max) affine-curve
+    ;; ensure out-min is smaller than out-max
+    (cond ((> out-min out-max)
+           (rotatef out-min out-max)
+           (rotatef in-min in-max))
+          ((= out-min out-max)
+           (error "out-min and out-max have same value ~A - that is not acceptable." out-min)))
+    ;; calculate and store scaling factor
     (setf scale
           (coerce (/ (- out-max out-min)
                      (- in-max in-min)) 'float))))
 
+(defun ensure-between-bounds (min max number)
+  "Ensure NUMBER is in the interval between MIN and MAX where (< MIN
+MAX) holds."
+  (cond ((< max number) max)
+        ((< number min) min)
+        (t number)))
+
 (defmethod apply-curve ((curve affine-curve) number)
-  (with-slots (scale in-min  out-min) curve
-    (+ (* scale (- number in-min)) out-min)))
+  (with-slots (scale in-min out-min out-max) curve
+    (ensure-between-bounds out-min out-max
+     (+ (* scale (- number in-min)) out-min))))
 
 (defgeneric process-js-input (model joystick axis number))
 
