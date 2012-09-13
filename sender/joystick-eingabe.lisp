@@ -86,13 +86,14 @@ MAX) holds."
     (ensure-between-bounds out-min out-max
      (+ (* scale (- number in-min)) out-min))))
 
-(defgeneric process-js-axis (model joystick axis number))
-
-(defmethod process-js-axis  (model joystick (axis integer) (number number)))
-
+(defgeneric process-js-axis   (model joystick axis number))
 (defgeneric process-js-button (model joystick button))
+(defgeneric process-js-hat    (model joystick hat direction))
 
-(defmethod process-js-button (model joystick (button integer)))
+(defmethod process-js-axis    (model joystick (axis integer) (number number)))
+(defmethod process-js-button  (model joystick (button integer)))
+(defmethod process-js-hat     (model joystick (hat integer) direction))
+
 
 (defmacro! define-joystick-binding (model joystick axis-bindings &optional button-bindings)
   `(progn
@@ -116,7 +117,9 @@ MAX) holds."
                ;; TODO handle trimming of this axis
                )))
         axis-bindings)
-     ;; generate the button bindings
+     ;; generate the button and hat bindings (event could perhaps be
+     ;; named (button x) and (hat x :north) or just (hat :north) for
+     ;; the standard hat nr 1?)
      ;; TODO what facilities do we need here?
      ))
 
@@ -152,8 +155,16 @@ and send axis data from them to the model."
         (:joy-button-down-event
          (:which jsid :button button :state state)
          ;; state is either sdl-pressed or sdl-released
+         (declare (ignorable state))
          (when (eql jsid id)
            (process-js-button model joystick button))
+         (sleep #.(expt 10 -3))
+         (sb-thread:thread-yield))
+        (:joy-hat-motion-event
+         (:which jsid :axis hat :value value)
+         ;; TODO what does value look like??         
+         (when (eql jsid id)
+           (process-js-hat model joystick hat value))
          (sleep #.(expt 10 -3))
          (sb-thread:thread-yield))
         (:idle ()
