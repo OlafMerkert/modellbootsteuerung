@@ -7,7 +7,8 @@
    :js-min
    :js-max
    :find-joystick
-   :process-js-input
+   :process-js-axis
+   :process-js-button
    :define-joystick-binding
    :joystick-main-loop
    :affine-curve))
@@ -85,15 +86,20 @@ MAX) holds."
     (ensure-between-bounds out-min out-max
      (+ (* scale (- number in-min)) out-min))))
 
-(defgeneric process-js-input (model joystick axis number))
+(defgeneric process-js-axis (model joystick axis number))
 
-(defmethod process-js-input  (model joystick (axis integer) (number number)))
+(defmethod process-js-axis  (model joystick (axis integer) (number number)))
 
-(defmacro! define-joystick-binding (model joystick bindings)
+(defgeneric process-js-button (model joystick button))
+
+(defmethod process-js-button (model joystick (button integer)))
+
+(defmacro! define-joystick-binding (model joystick axis-bindings &optional button-bindings)
   `(progn
+     ;; generate the axis-bindings
      ,@(mapcar
         (lambda (binding)
-          (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil)) binding
+          (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil) (trimming nil)) binding
             (when reverse
               (rotatef min max))
             `(let ((,g!curve
@@ -101,13 +107,18 @@ MAX) holds."
                                    :in-min ,min :in-max ,max
                                    :out-min (getf (datprot:axis-range ',model ',name) :min)
                                    :out-max (getf (datprot:axis-range ',model ',name) :max))))
-               (defmethod process-js-input ((,g!model ,model)
+               (defmethod process-js-axis ((,g!model ,model)
                                             (,g!joystick (eql ',joystick))
                                             (,g!axis (eql ,axis))
                                             (,g!number number))
                  (setf (slot-value ,g!model ',name)
-                       (floor (apply-curve ,g!curve ,g!number)))))))
-        bindings)))
+                       (floor (apply-curve ,g!curve ,g!number))))
+               ;; TODO handle trimming of this axis
+               )))
+        axis-bindings)
+     ;; generate the button bindings
+     ;; TODO what facilities do we need here?
+     ))
 
 ;; TODO allow using more than one stick at a time.
 
@@ -135,7 +146,14 @@ and send axis data from them to the model."
         (:joy-axis-motion-event
          (:which jsid :axis axis :value value)
          (when (eql jsid id)
-           (process-js-input model joystick axis value))
+           (process-js-axis model joystick axis value))
+         (sleep #.(expt 10 -3))
+         (sb-thread:thread-yield))
+        (:joy-button-down-event
+         (:which jsid :button button :state state)
+         ;; state is either sdl-pressed or sdl-released
+         (when (eql jsid id)
+           (process-js-button model joystick button))
          (sleep #.(expt 10 -3))
          (sb-thread:thread-yield))
         (:idle ()
