@@ -9,9 +9,13 @@
    :find-joystick
    :process-js-axis
    :process-js-button
+   :process-js-hat
    :define-joystick-binding
    :joystick-main-loop
-   :affine-curve))
+   :affine-curve
+   :button
+   :hat
+   :trim))
 
 (in-package :joystick-eingabe)
 
@@ -122,7 +126,7 @@ MAX) holds."
 (defmethod process-js-hat     (model joystick (hat integer) direction))
 
 
-(defmacro! define-joystick-binding (model joystick axis-bindings &optional button-bindings)
+(defmacro! define-joystick-binding (model joystick axis-bindings &rest button-bindings)
   `(progn
      ;; generate the axis-bindings
      ,@(mapcar
@@ -131,24 +135,64 @@ MAX) holds."
             (when reverse
               (rotatef min max))
             `(let ((,g!curve
-                    (make-instance 'affine-curve
+                    (make-instance ',(if trimming 'trimmed-curve 'affine-curve)
                                    :in-min ,min :in-max ,max
                                    :out-min (getf (datprot:axis-range ',model ',name) :min)
-                                   :out-max (getf (datprot:axis-range ',model ',name) :max))))
+                                   :out-max (getf (datprot:axis-range ',model ',name) :max)
+                                   ,@(if trimming `(:trim-unit (* ,trimming (- js-max js-min) 1/2))))))
                (defmethod process-js-axis ((,g!model ,model)
                                             (,g!joystick (eql ',joystick))
                                             (,g!axis (eql ,axis))
                                             (,g!number number))
                  (setf (slot-value ,g!model ',name)
                        (floor (apply-curve ,g!curve ,g!number))))
-               ;; TODO handle trimming of this axis
+               ;; handle trimming of this axis
+               (defmethod handle-trim-command ((,g!model (eql ',model))
+                                               (,g!joystick (eql ',joystick))
+                                               (,g!axis (eql ',name))
+                                               (,g!direction number))
+                 (adjust-trim ,g!curve ,g!direction))
+               ;; TODO save trim information
                )))
         axis-bindings)
      ;; generate the button and hat bindings (event could perhaps be
      ;; named (button x) and (hat x :north) or just (hat :north) for
      ;; the standard hat nr 1?)
-     ;; TODO what facilities do we need here?
-     ))
+     ,@(mapcar
+        (lambda (binding)
+          (cond ((eql (caar binding) 'button)
+                 `(defmethod process-js-button ((,g!model ,model)
+                                                (,g!joystick (eql ',joystick))
+                                                (,g!button (eql ,(cadar binding))))
+                    ,@(expand-button-commands g!model model joystick (cdr binding))))
+                ;; hat with explicit number
+                ((and (eql (caar binding) 'hat) (cddar binding))
+                 `(defmethod process-js-hat ((,g!model ,model)
+                                             (,g!joystick (eql ',joystick))
+                                             (,g!hat (eql ,(cadar binding)))
+                                             (,g!direction (eql ,(caddar binding))))
+                    ,@(expand-button-commands g!model model joystick (cdr binding))))
+                ;; hat without explicit number
+                ((eql (caar binding) 'hat)
+                 `(defmethod process-js-hat ((,g!model ,model)
+                                             (,g!joystick (eql ',joystick))
+                                             (,g!hat (eql 0))
+                                             (,g!direction (eql ,(cadar binding))))
+                    ,@(expand-button-commands g!model model joystick (cdr binding))))
+                (t (error "Unknown event spec ~A" (car binding)))))
+        button-bindings)))
+
+(defun expand-button-commands (g!model model joystick commands)
+  (mapcar (lambda (com)
+            (expand-button-command
+             (car com) g!model model joystick com))
+          commands))
+
+(defmethod expand-button-command ((name (eql 'trim))
+                                 g!model model joystick
+                                 command)
+  `(handle-trim-command ',model ',joystick ',(second command) ,(third command)))
+
 
 ;; TODO allow using more than one stick at a time.
 
@@ -189,7 +233,8 @@ and send axis data from them to the model."
          (sb-thread:thread-yield))
         (:joy-hat-motion-event
          (:which jsid :axis hat :value value)
-         ;; TODO what does value look like??         
+         ;; TODO what does value look like?? we want to send only
+         ;; values :north, :west, :south, :east to the generic function
          (when (eql jsid id)
            (process-js-hat model joystick hat value))
          (sleep #.(expt 10 -3))

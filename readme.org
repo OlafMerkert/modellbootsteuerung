@@ -56,7 +56,7 @@ die gleichzeitige Nutzung mehrerer Joysticks noch nicht unterstützt.
 ** TODO Steuerbefehle mit Buttons und Hats
 Bspp: Trimmung, Motor anlassen/ausschalten, Einziehfahrwerk
 
-** TODO Trimmfunktion für Joystickachsen
+** DONE Trimmfunktion für Joystickachsen
 Insbesondere bei Flugzeugen ist es nützlich, elektronisch die
 Steuerflächen trimmen zu können, damit bei Nullstellung des Joysticks
 das Flugzeug gerade fliegt und die Höhe beibehält.
@@ -65,7 +65,7 @@ das Flugzeug gerade fliegt und die Höhe beibehält.
 Die Trimmung sollte nach Möglichkeit persistent gespeichert werden
 können, damit man nicht bei jedem Flug komplett neu trimmen muss.
 
-*** TODO Trimmung durch Bewegung des Hats ändern
+*** DONE Trimmung durch Bewegung des Hats ändern
 
 * Erforderliche Software
 
