@@ -60,13 +60,17 @@ usually a symbol)."
             :reader out-max))
   (:documentation "affine transformation of input data to output data."))
 
+(defmethod swap-curve-bounds ((curve affine-curve))
+  (with-slots (in-min in-max out-min out-max) curve
+    (rotatef out-min out-max)
+    (rotatef in-min in-max)))
+
 (defmethod initialize-instance :after ((affine-curve affine-curve) &rest args)
   (declare (ignore args))
   (with-slots (scale in-min in-max out-min out-max) affine-curve
     ;; ensure out-min is smaller than out-max
     (cond ((> out-min out-max)
-           (rotatef out-min out-max)
-           (rotatef in-min in-max))
+           (swap-curve-bounds affine-curve))
           ((= out-min out-max)
            (error "out-min and out-max have same value ~A - that is not acceptable." out-min)))
     ;; calculate and store scaling factor
@@ -84,7 +88,30 @@ MAX) holds."
 (defmethod apply-curve ((curve affine-curve) number)
   (with-slots (scale in-min out-min out-max) curve
     (ensure-between-bounds out-min out-max
-     (+ (* scale (- number in-min)) out-min))))
+                           (+ (* scale (- number in-min)) out-min))))
+
+(defclass trimmed-curve (affine-curve)
+  ((trim-unit      :initarg :trim-unit
+                   :initform 1
+                   :accessor trim-unit)
+   (trim-position :initarg :trim-position
+                  :initform 0
+                  :accessor trim-position))
+  (:documentation "add a trimming functionality to the curve."))
+
+(defmethod swap-curve-bounds :after ((curve trimmed-curve))
+  (with-slots (trim-unit) curve
+    (setf trim-unit (- trim-unit))))
+
+(defmethod apply-curve ((curve trimmed-curve) number)
+  (call-next-method curve (+ (trim-position curve) number)))
+
+(defmethod adjust-trim ((curve trimmed-curve) (direction number))
+  (with-slots (trim-unit trim-position) curve
+   (cond ((minusp direction)
+          (decf trim-position trim-unit))
+         ((plusp direction)
+          (incf trim-position trim-unit)))))
 
 (defgeneric process-js-axis   (model joystick axis number))
 (defgeneric process-js-button (model joystick button))
