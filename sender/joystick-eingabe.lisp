@@ -78,19 +78,19 @@ usually a symbol)."
   `(progn
      ,@(mapcar
         (lambda (binding)
-          (destructuring-bind (name &key axis (min js-min) (max js-max) (reverse nil)) binding
+          (destructuring-bind (channel-name &key ((:axis axis-nr)) (min js-min) (max js-max) (reverse nil)) binding
             (when reverse
               (rotatef min max))
             `(let ((,g!curve
                     (make-instance 'affine-curve
                                    :in-min ,min :in-max ,max
-                                   :out-min (getf (datprot:axis-range ',model ',name) :min)
-                                   :out-max (getf (datprot:axis-range ',model ',name) :max))))
+                                   :out-min (getf (datprot:axis-range ',model ',channel-name) :min)
+                                   :out-max (getf (datprot:axis-range ',model ',channel-name) :max))))
                (defmethod process-js-input ((,g!model ,model)
                                             (,g!joystick (eql ',joystick))
-                                            (,g!axis (eql ,axis))
+                                            (,g!axis (eql ,axis-nr))
                                             (,g!number number))
-                 (setf (slot-value ,g!model ',name)
+                 (setf (slot-value ,g!model ',channel-name)
                        (floor (apply-curve ,g!curve ,g!number)))))))
         bindings)))
 
