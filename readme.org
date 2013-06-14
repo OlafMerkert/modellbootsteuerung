@@ -53,6 +53,20 @@ Die Reihenfolge der Achsen spielt keine Rolle, es müssen auch nicht
 alle Achsen von jedem Joystick belegt werden--allerdings wird momentan
 die gleichzeitige Nutzung mehrerer Joysticks noch nicht unterstützt.
 
+** TODO Steuerbefehle mit Buttons und Hats
+Bspp: Trimmung, Motor anlassen/ausschalten, Einziehfahrwerk
+
+** DONE Trimmfunktion für Joystickachsen
+Insbesondere bei Flugzeugen ist es nützlich, elektronisch die
+Steuerflächen trimmen zu können, damit bei Nullstellung des Joysticks
+das Flugzeug gerade fliegt und die Höhe beibehält.
+
+*** TODO Trimmung persistent speichern
+Die Trimmung sollte nach Möglichkeit persistent gespeichert werden
+können, damit man nicht bei jedem Flug komplett neu trimmen muss.
+
+*** DONE Trimmung durch Bewegung des Hats ändern
+
 * Erforderliche Software
 
 setserial + stty

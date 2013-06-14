@@ -55,8 +55,12 @@
 
   (define-joystick-binding flugzeug fighterstick
     ((gas :axis 2)
-     (hoehenruder :axis 1)
-     (seitenruder :axis 0))))
+     (hoehenruder :axis 1 :trimming 1/20)
+     (seitenruder :axis 0 :trimming 1/20))
+    ((hat :north)  (trim hoehenruder +1))
+    ((hat :south)  (trim hoehenruder -1))
+    ((hat 0 :east) (trim seitenruder +1))
+    ((hat 0 :west) (trim seitenruder -1))))
 
 ;;; some test functions
 (defun test-model/boot ()
